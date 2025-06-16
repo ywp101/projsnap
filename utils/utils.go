@@ -4,13 +4,22 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/twmb/murmur3"
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf16"
 )
+
+func Hash(s string) string {
+	hasher := murmur3.New32()
+	_, _ = hasher.Write([]byte(s))
+	return strconv.Itoa(int(hasher.Sum32()))
+}
 
 func ReadFileToStringList(file string) ([]string, error) {
 	fd, err := os.Open(file)
@@ -22,7 +31,7 @@ func ReadFileToStringList(file string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return strings.Split(string(b), "\n"), nil
+	return slices.DeleteFunc(strings.Split(string(b), "\n"), func(s string) bool { return s == "" }), nil
 }
 
 func RecoverBakFile(bakFile string) error {
@@ -58,12 +67,17 @@ func BakFile(src string) (string, error) {
 }
 
 func ExpandUser(path string) (string, error) {
-	if strings.HasPrefix(path, "~") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(home, path[1:]), nil
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	jetbrainHome := "$USER_HOME$"
+	shellHome := "~"
+	if strings.HasPrefix(path, shellHome) {
+		return filepath.Join(home, path[len(shellHome):]), nil
+	}
+	if strings.HasPrefix(path, jetbrainHome) {
+		return filepath.Join(home, path[len(jetbrainHome):]), nil
 	}
 	return path, nil
 }

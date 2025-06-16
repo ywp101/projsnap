@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os/exec"
@@ -41,6 +42,9 @@ func OpenMultiApp(appName string, args ...string) error {
 }
 
 func OpenApp(appName string, args ...string) error {
+	if appName == "" && len(args) == 0 {
+		return errors.New("no app name or args")
+	}
 	allArgs := make([]string, 0)
 	if appName != "" {
 		allArgs = append(allArgs, "-a", appName)
@@ -71,4 +75,17 @@ func GracefulQuit(appName string) error {
 	}
 	time.Sleep(1 * time.Second)
 	return nil
+}
+
+func GetCurrenWindowsFile(appName string) ([]string, error) {
+	script := fmt.Sprintf(`
+	tell application "System Events"
+		set appName to "%s"
+		set winTitles to {}
+		repeat with w in windows of application process appName
+			set end of winTitles to name of w
+		end repeat
+		return winTitles
+	end tell`, appName)
+	return RunOsascript(script)
 }

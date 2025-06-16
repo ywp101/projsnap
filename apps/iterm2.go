@@ -3,6 +3,7 @@ package apps
 import (
 	"fmt"
 	"os"
+	"time"
 	"workspace/utils"
 )
 
@@ -31,6 +32,7 @@ end tell`, iterm2File)
 	if err != nil {
 		return nil, err
 	}
+	time.Sleep(1 * time.Second) // wait for iterm2 to write
 	defer os.Remove(iterm2File)
 	return utils.ReadFileToStringList(iterm2File)
 }

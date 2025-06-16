@@ -1,5 +1,9 @@
 package apps
 
+import (
+	"workspace/utils"
+)
+
 type WorkspaceConfig struct {
 	AppName string   `json:"app_name"`
 	Args    []string `json:"args"`
@@ -18,6 +22,5 @@ func (NormalPacker) Pack(_ string) ([]string, error) {
 }
 
 func (NormalPacker) Unpack(ws *WorkspaceConfig) error {
-	return nil
-	//return utils.OpenApp(ws.AppName, ws.Args...)
+	return utils.OpenApp(ws.AppName, ws.Args...)
 }

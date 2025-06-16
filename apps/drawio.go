@@ -8,26 +8,14 @@ import (
 
 var (
 	drawIOConfigPath = "~/Library/Application Support/draw.io/Local Storage/leveldb"
+	drawIOAppName    = "draw.io"
 )
 
 type DrawIO struct {
 }
 
-func getCurrenDrawIOFile() ([]string, error) {
-	script := `
-	tell application "System Events"
-		set appName to "draw.io"
-		set winTitles to {}
-		repeat with w in windows of application process appName
-			set end of winTitles to name of w
-		end repeat
-		return winTitles
-	end tell`
-	return utils.RunOsascript(script)
-}
-
 func getDrawIOOpenFiles() ([]string, error) {
-	titles, err := getCurrenDrawIOFile()
+	titles, err := utils.GetCurrenWindowsFile(drawIOAppName)
 	if err != nil {
 		return nil, err
 	}
