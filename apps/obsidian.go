@@ -25,7 +25,7 @@ type Vault struct {
 type Obsidian struct {
 }
 
-func (Obsidian) Pack(_ string) ([]string, error) {
+func (Obsidian) Pack(configDir, _ string) ([]string, error) {
 	configPath, _ := utils.ExpandUser(obsidianConfigPath)
 	fd, err := os.Open(configPath)
 	if err != nil {
@@ -45,7 +45,7 @@ func (Obsidian) Pack(_ string) ([]string, error) {
 	if workspacePath == "" {
 		return nil, errors.New("no open vault")
 	}
-	if bakFile, err := utils.BakFile(workspacePath); err != nil {
+	if bakFile, err := utils.BakFile(configDir, workspacePath); err != nil {
 		return nil, err
 	} else {
 		return []string{bakFile}, nil
@@ -60,4 +60,8 @@ func (Obsidian) Unpack(ws *WorkspaceConfig) error {
 		return err
 	}
 	return utils.OpenApp(ws.AppName)
+}
+
+func (Obsidian) Quit(appName string) error {
+	return utils.GracefulQuit(appName)
 }

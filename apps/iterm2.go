@@ -3,6 +3,7 @@ package apps
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 	"workspace/utils"
 )
@@ -10,12 +11,8 @@ import (
 type Iterm2 struct {
 }
 
-func (Iterm2) Pack(_ string) ([]string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	iterm2File := fmt.Sprintf("%s/.iterm2.txt", dir)
+func (Iterm2) Pack(_, _ string) ([]string, error) {
+	iterm2File := filepath.Join(os.TempDir(), ".iterm2.txt")
 	_ = os.Remove(iterm2File)
 	script := fmt.Sprintf(`tell application "iTerm"
   set output to ""
@@ -28,7 +25,7 @@ func (Iterm2) Pack(_ string) ([]string, error) {
   end repeat
   return output
 end tell`, iterm2File)
-	_, err = utils.RunOsascript(script)
+	_, err := utils.RunOsascript(script)
 	if err != nil {
 		return nil, err
 	}
@@ -39,4 +36,8 @@ end tell`, iterm2File)
 
 func (Iterm2) Unpack(ws *WorkspaceConfig) error {
 	return utils.OpenApp("iterm", ws.Args...)
+}
+
+func (Iterm2) Quit(appName string) error {
+	return utils.GracefulQuit(appName)
 }

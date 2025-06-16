@@ -8,6 +8,13 @@ import (
 	"workspace/utils"
 )
 
+/*
+启用“辅助功能权限”
+System Events 访问其他 app 的窗口信息需要你授权：
+打开：系统设置 -> 隐私与安全 -> 辅助功能
+启用当前运行脚本的终端（如 iTerm、Terminal、Script Editor、你的 Go 程序等）
+*/
+
 var configDir, _ = utils.ExpandUser("~/.projctx/")
 var quitFlag bool
 var ctxVersion string
@@ -44,6 +51,7 @@ var restoreCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if ctxVersion == "" {
 			log.Printf("not found ctxVersion: %s\n", ctxVersion)
+			return
 		}
 		ws := NewWorkspace(&WorkspaceOptions{
 			configDir: configDir,

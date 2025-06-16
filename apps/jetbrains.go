@@ -32,10 +32,10 @@ func getJetBrainsIOOpenFiles(appName string) ([]string, error) {
 	return fileNames, nil
 }
 
-func (JetBrains) Pack(ideName string) ([]string, error) {
+func (JetBrains) Pack(_, ideName string) ([]string, error) {
 	projectNames, err := getJetBrainsIOOpenFiles(ideName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getJetBrainsIOOpenFiles occur fail, err: %v\n", err)
 	}
 	xmlPath := "/Users/ryanye/Library/Application Support/JetBrains/GoLand2023.2/options/recentProjects.xml"
 	data, err := os.ReadFile(xmlPath)
@@ -63,6 +63,9 @@ func (JetBrains) Pack(ideName string) ([]string, error) {
 }
 
 func (JetBrains) Unpack(ws *WorkspaceConfig) error {
-	return nil
-	//return utils.OpenApp(ws.AppName, ws.Args...)
+	return utils.OpenApp(ws.AppName, ws.Args...)
+}
+
+func (JetBrains) Quit(appName string) error {
+	return utils.GracefulQuit(appName)
 }

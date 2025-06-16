@@ -8,7 +8,7 @@ import (
 type Browser struct {
 }
 
-func (f Browser) Pack(browserName string) ([]string, error) {
+func (f Browser) Pack(_, browserName string) ([]string, error) {
 	browserScript := fmt.Sprintf(`
 tell application "%s"
 	set tabList to {}
@@ -25,4 +25,10 @@ end tell`, browserName)
 
 func (Browser) Unpack(ws *WorkspaceConfig) error {
 	return utils.OpenApp(ws.AppName, ws.Args...)
+}
+
+func (Browser) Quit(browserName string) error {
+	quitScript := fmt.Sprintf(` tell application "%s" to close every window`, browserName)
+	_, err := utils.RunOsascript(quitScript)
+	return err
 }

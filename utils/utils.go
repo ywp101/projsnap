@@ -50,13 +50,13 @@ func RecoverBakFile(bakFile string) error {
 	return err
 }
 
-func BakFile(src string) (string, error) {
+func BakFile(dstDir, src string) (string, error) {
 	srcFd, err := os.Open(src)
 	if err != nil {
 		return "", err
 	}
 	defer srcFd.Close()
-	dst := fmt.Sprintf("%s.%d", src, time.Now().Unix())
+	dst := fmt.Sprintf("%s/%s.%d", dstDir, filepath.Base(src), time.Now().Unix())
 	dstFd, err := os.Create(dst)
 	if err != nil {
 		return "", err

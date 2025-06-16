@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -95,8 +96,17 @@ func (w *Workspace) GetPacker(appName string) apps.AppSessionPacker {
 }
 
 func (w *Workspace) QuitAllApplication(appNames []string) {
+	hasTerm := false
 	for _, app := range appNames {
-		_ = utils.GracefulQuit(app)
+		if app != "iTerm2" {
+			log.Printf("quit %s, err: %v", app, w.GetPacker(app).Quit(app))
+		} else {
+			hasTerm = true
+		}
+	}
+	// todo: hard code
+	if hasTerm {
+		_ = w.GetPacker("iTerm2").Quit("iTerm2")
 	}
 }
 
@@ -105,13 +115,15 @@ func (w *Workspace) SaveWorkspace(aliasName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	appNames = RemoveInWhiteList(appNames)
 	wsConfigs := make([]apps.WorkspaceConfig, 0)
 	hashInput := ""
 	for _, app := range appNames {
 		hashInput += app
-		conf, err := w.GetPacker(app).Pack(app)
+		conf, err := w.GetPacker(app).Pack(w.opt.configDir, app)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("%s occur fail, err: %v", app, err)
 		}
 		wsConfigs = append(wsConfigs, apps.WorkspaceConfig{AppName: app, Args: conf})
 	}
