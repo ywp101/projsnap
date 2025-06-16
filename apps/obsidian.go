@@ -52,7 +52,7 @@ func (Obsidian) Pack(configDir, _ string) ([]string, error) {
 	}
 }
 
-func (Obsidian) Unpack(ws *WorkspaceConfig) error {
+func (Obsidian) Unpack(ws *AppConfig) error {
 	if err := utils.GracefulQuit(ws.AppName); err != nil {
 		return nil
 	}

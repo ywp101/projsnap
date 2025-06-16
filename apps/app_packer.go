@@ -4,14 +4,14 @@ import (
 	"workspace/utils"
 )
 
-type WorkspaceConfig struct {
+type AppConfig struct {
 	AppName string   `json:"app_name"`
 	Args    []string `json:"args"`
 }
 
-type AppSessionPacker interface {
+type AppPacker interface {
 	Pack(string, string) ([]string, error)
-	Unpack(*WorkspaceConfig) error
+	Unpack(*AppConfig) error
 	Quit(string) error
 }
 
@@ -22,7 +22,7 @@ func (NormalPacker) Pack(_, _ string) ([]string, error) {
 	return []string{}, nil
 }
 
-func (NormalPacker) Unpack(ws *WorkspaceConfig) error {
+func (NormalPacker) Unpack(ws *AppConfig) error {
 	return utils.OpenApp(ws.AppName, ws.Args...)
 }
 

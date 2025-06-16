@@ -23,7 +23,7 @@ end tell`, browserName)
 	return utils.RunOsascript(browserScript)
 }
 
-func (Browser) Unpack(ws *WorkspaceConfig) error {
+func (Browser) Unpack(ws *AppConfig) error {
 	return utils.OpenApp(ws.AppName, ws.Args...)
 }
 

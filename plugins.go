@@ -5,7 +5,7 @@ import (
 	"workspace/apps"
 )
 
-func LoadApplicationPlugins(ws *Workspace) {
+func LoadApplicationPlugins(ws *ProjectCtx) {
 	ws.RegisterApplication("Finder", apps.Finder{})
 	ws.RegisterApplication("Microsoft Edge", apps.Browser{})
 	ws.RegisterApplication("draw.io", apps.DrawIO{})
@@ -16,8 +16,8 @@ func LoadApplicationPlugins(ws *Workspace) {
 
 func RemoveInWhiteList(appNames []string) []string {
 	whiteList := make(map[string]bool)
-	whiteList["goland"] = true
-	whiteList["iterm2"] = true
+	//whiteList["goland"] = true
+	//whiteList["iterm2"] = true
 
 	result := make([]string, 0)
 	for _, app := range appNames {

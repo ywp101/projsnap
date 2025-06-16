@@ -1,4 +1,4 @@
-module workspace
+module projctx
 
 go 1.24.2
 

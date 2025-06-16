@@ -13,28 +13,28 @@ import (
 	"workspace/utils"
 )
 
-type WorkspaceMeta struct {
+type ProjectCtxMeta struct {
 	Snapshots map[string]string `json:"snapshots"` // aliasName -> workspace.json
 }
 
-type WorkspaceOptions struct {
+type ProjectCtxOptions struct {
 	quit      bool
 	configDir string
 }
 
-type Workspace struct {
-	specSessions  map[string]apps.AppSessionPacker
-	generalPacker apps.AppSessionPacker
-	opt           *WorkspaceOptions
-	meta          *WorkspaceMeta
+type ProjectCtx struct {
+	specSessions  map[string]apps.AppPacker
+	generalPacker apps.AppPacker
+	opt           *ProjectCtxOptions
+	meta          *ProjectCtxMeta
 }
 
-func NewWorkspace(opt *WorkspaceOptions) *Workspace {
-	ws := &Workspace{
-		specSessions:  make(map[string]apps.AppSessionPacker),
+func NewWorkspace(opt *ProjectCtxOptions) *ProjectCtx {
+	ws := &ProjectCtx{
+		specSessions:  make(map[string]apps.AppPacker),
 		generalPacker: apps.NormalPacker{},
 		opt:           opt,
-		meta:          &WorkspaceMeta{Snapshots: make(map[string]string)},
+		meta:          &ProjectCtxMeta{Snapshots: make(map[string]string)},
 	}
 	LoadApplicationPlugins(ws)
 	if err := ws.loadMeta(); err != nil {
@@ -43,15 +43,28 @@ func NewWorkspace(opt *WorkspaceOptions) *Workspace {
 	return ws
 }
 
-func (w *Workspace) getMetaFilePath() string {
+func (w *ProjectCtx) getMetaFilePath() string {
 	return filepath.Join(w.opt.configDir, "meta.json")
 }
 
-func (w *Workspace) ListSnapshots() map[string]string {
+func (w *ProjectCtx) RemoveSnapshots(aliasName string) error {
+	ctxVersion, ok := w.meta.Snapshots[aliasName]
+	if !ok {
+		return fmt.Errorf("no found ctxID or aliasName: %s", aliasName)
+	}
+	// todo: 其他app产生的config也需要清理
+	delete(w.meta.Snapshots, aliasName)
+	if err := os.Remove(filepath.Join(w.opt.configDir, ctxVersion+".json")); err != nil {
+		return err
+	}
+	return w.saveMeta("", "")
+}
+
+func (w *ProjectCtx) ListSnapshots() map[string]string {
 	return w.meta.Snapshots
 }
 
-func (w *Workspace) loadMeta() error {
+func (w *ProjectCtx) loadMeta() error {
 	if _, err := os.Stat(configDir); os.IsNotExist(err) {
 		if err := os.Mkdir(configDir, 0755); err != nil {
 			return err
@@ -60,7 +73,7 @@ func (w *Workspace) loadMeta() error {
 
 	metaPath := w.getMetaFilePath()
 	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		w.meta = &WorkspaceMeta{Snapshots: make(map[string]string)}
+		w.meta = &ProjectCtxMeta{Snapshots: make(map[string]string)}
 		return nil
 	}
 	fd, err := os.Open(metaPath)
@@ -71,8 +84,10 @@ func (w *Workspace) loadMeta() error {
 	return json.NewDecoder(fd).Decode(w.meta)
 }
 
-func (w *Workspace) saveMeta(aliasName, wsFilePath string) error {
-	w.meta.Snapshots[aliasName] = wsFilePath
+func (w *ProjectCtx) saveMeta(aliasName, wsFilePath string) error {
+	if aliasName != "" && wsFilePath != "" {
+		w.meta.Snapshots[aliasName] = wsFilePath
+	}
 
 	metaPath := w.getMetaFilePath()
 	fd, err := os.Create(metaPath)
@@ -83,11 +98,11 @@ func (w *Workspace) saveMeta(aliasName, wsFilePath string) error {
 	return json.NewEncoder(fd).Encode(w.meta)
 }
 
-func (w *Workspace) RegisterApplication(name string, app apps.AppSessionPacker) {
+func (w *ProjectCtx) RegisterApplication(name string, app apps.AppPacker) {
 	w.specSessions[strings.ToLower(name)] = app
 }
 
-func (w *Workspace) GetPacker(appName string) apps.AppSessionPacker {
+func (w *ProjectCtx) GetPacker(appName string) apps.AppPacker {
 	appName = strings.ToLower(appName)
 	if packer, ok := w.specSessions[appName]; ok {
 		return packer
@@ -95,7 +110,7 @@ func (w *Workspace) GetPacker(appName string) apps.AppSessionPacker {
 	return w.generalPacker
 }
 
-func (w *Workspace) QuitAllApplication(appNames []string) {
+func (w *ProjectCtx) QuitAllApplication(appNames []string) {
 	hasTerm := false
 	for _, app := range appNames {
 		if app != "iTerm2" {
@@ -110,14 +125,14 @@ func (w *Workspace) QuitAllApplication(appNames []string) {
 	}
 }
 
-func (w *Workspace) SaveWorkspace(aliasName string) (bool, error) {
+func (w *ProjectCtx) SaveWorkspace(aliasName string) (bool, error) {
 	appNames, err := w.GetAllApplication()
 	if err != nil {
 		return false, err
 	}
 
 	appNames = RemoveInWhiteList(appNames)
-	wsConfigs := make([]apps.WorkspaceConfig, 0)
+	wsConfigs := make([]apps.AppConfig, 0)
 	hashInput := ""
 	for _, app := range appNames {
 		hashInput += app
@@ -125,7 +140,7 @@ func (w *Workspace) SaveWorkspace(aliasName string) (bool, error) {
 		if err != nil {
 			return false, fmt.Errorf("%s occur fail, err: %v", app, err)
 		}
-		wsConfigs = append(wsConfigs, apps.WorkspaceConfig{AppName: app, Args: conf})
+		wsConfigs = append(wsConfigs, apps.AppConfig{AppName: app, Args: conf})
 	}
 
 	fname := utils.Hash(hashInput + time.Now().String())
@@ -152,7 +167,7 @@ func (w *Workspace) SaveWorkspace(aliasName string) (bool, error) {
 	return true, nil
 }
 
-func (w *Workspace) LoadWorkspace(aliasName string) error {
+func (w *ProjectCtx) LoadWorkspace(aliasName string) error {
 	// alias
 	ctxVersion, ok := w.meta.Snapshots[aliasName]
 	if !ok {
@@ -163,7 +178,7 @@ func (w *Workspace) LoadWorkspace(aliasName string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	wsConfigs := make([]apps.WorkspaceConfig, 0)
+	wsConfigs := make([]apps.AppConfig, 0)
 	if err = json.NewDecoder(fd).Decode(&wsConfigs); err != nil {
 		log.Fatal(err)
 	}
@@ -176,7 +191,7 @@ func (w *Workspace) LoadWorkspace(aliasName string) error {
 	return nil
 }
 
-func (w *Workspace) GetAllApplication() ([]string, error) {
+func (w *ProjectCtx) GetAllApplication() ([]string, error) {
 	return utils.RunOsascript(`
 	tell application "System Events"
 		get name of (processes where background only is false)

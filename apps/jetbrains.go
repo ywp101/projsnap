@@ -62,8 +62,8 @@ func (JetBrains) Pack(_, ideName string) ([]string, error) {
 	return openProjects, nil
 }
 
-func (JetBrains) Unpack(ws *WorkspaceConfig) error {
-	return utils.OpenApp(ws.AppName, ws.Args...)
+func (JetBrains) Unpack(ws *AppConfig) error {
+	return utils.OpenMultiApp(ws.AppName, ws.Args...)
 }
 
 func (JetBrains) Quit(appName string) error {

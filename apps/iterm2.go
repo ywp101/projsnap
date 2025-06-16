@@ -34,7 +34,7 @@ end tell`, iterm2File)
 	return utils.ReadFileToStringList(iterm2File)
 }
 
-func (Iterm2) Unpack(ws *WorkspaceConfig) error {
+func (Iterm2) Unpack(ws *AppConfig) error {
 	return utils.OpenApp("iterm", ws.Args...)
 }
 

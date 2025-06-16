@@ -22,7 +22,7 @@ func (f Finder) Pack(_, _ string) ([]string, error) {
 	return utils.RunOsascript(script)
 }
 
-func (f Finder) Unpack(ws *WorkspaceConfig) error {
+func (f Finder) Unpack(ws *AppConfig) error {
 	if len(ws.Args) == 0 {
 		return nil
 	}

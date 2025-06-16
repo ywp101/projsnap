@@ -19,6 +19,7 @@ var configDir, _ = utils.ExpandUser("~/.projctx/")
 var quitFlag bool
 var ctxVersion string
 var aliasName string
+var rmIndex int
 
 var rootCmd = &cobra.Command{
 	Use:   "projctx",
@@ -34,7 +35,7 @@ var snapshotCmd = &cobra.Command{
 	Aliases: []string{"ss"},
 	Short:   "Save the current snapshot",
 	Run: func(cmd *cobra.Command, args []string) {
-		ws := NewWorkspace(&WorkspaceOptions{
+		ws := NewWorkspace(&ProjectCtxOptions{
 			quit:      quitFlag,
 			configDir: configDir,
 		})
@@ -53,7 +54,7 @@ var restoreCmd = &cobra.Command{
 			log.Printf("not found ctxVersion: %s\n", ctxVersion)
 			return
 		}
-		ws := NewWorkspace(&WorkspaceOptions{
+		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
 		if err := ws.LoadWorkspace(ctxVersion); err != nil {
@@ -64,10 +65,10 @@ var restoreCmd = &cobra.Command{
 
 var listSnapshotCmd = &cobra.Command{
 	Use:     "list",
-	Aliases: []string{"ls"},
+	Aliases: []string{"ls", "ll"},
 	Short:   "list Snapshots",
 	Run: func(cmd *cobra.Command, args []string) {
-		ws := NewWorkspace(&WorkspaceOptions{
+		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
 		i := 1
@@ -85,11 +86,28 @@ var listSnapshotCmd = &cobra.Command{
 	},
 }
 
+var rmSnapshotCmd = &cobra.Command{
+	Use:     "remove",
+	Aliases: []string{"rm"},
+	Short:   "remove Snapshots",
+	Run: func(cmd *cobra.Command, args []string) {
+		ws := NewWorkspace(&ProjectCtxOptions{
+			configDir: configDir,
+		})
+		if err := ws.RemoveSnapshots(ctxVersion); err != nil {
+			fmt.Printf("remove snapshots fail, err:%v\n", err)
+		} else {
+			fmt.Println("remove snapshots success!")
+		}
+	},
+}
+
 func init() {
 	snapshotCmd.Flags().BoolVarP(&quitFlag, "quit", "q", false, "Exit when saving snapshot")
 	snapshotCmd.Flags().StringVarP(&aliasName, "alias", "a", "", "Snapshot alias name")
 	restoreCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
-	rootCmd.AddCommand(snapshotCmd, restoreCmd, listSnapshotCmd)
+	rmSnapshotCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
+	rootCmd.AddCommand(snapshotCmd, restoreCmd, listSnapshotCmd, rmSnapshotCmd)
 }
 
 func main() {

@@ -54,7 +54,7 @@ func (DrawIO) Pack(_, _ string) ([]string, error) {
 	return filePaths, nil
 }
 
-func (DrawIO) Unpack(ws *WorkspaceConfig) error {
+func (DrawIO) Unpack(ws *AppConfig) error {
 	taskMap := make(map[string]bool)
 	return utils.OpenMultiAppByRetry(func() ([]string, error) {
 		doneArgs, err := getDrawIOOpenFiles()
