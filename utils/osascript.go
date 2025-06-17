@@ -55,17 +55,31 @@ func OpenApp(appName string, args ...string) error {
 	return cmd.Run()
 }
 
-func RunOsascript(script string) ([]string, error) {
+func RunOsascriptWithSplit(script string, splitFn func(string) error) error {
 	cmd := exec.Command("osascript", "-e", script)
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		return err
 	}
+	return splitFn(string(out))
+}
+
+//func WrapRunOsascript(script string) ([][]string, error) {
+//	result := make([][]string, 0)
+//	items, err := RunOsascript(script)
+//	result = append(result, items)
+//	return result, err
+//}
+
+func RunOsascript(script string) ([]string, error) {
 	items := make([]string, 0)
-	for _, item := range strings.Split(string(out), ",") {
-		items = append(items, strings.TrimSpace(item))
-	}
-	return items, nil
+	err := RunOsascriptWithSplit(script, func(out string) error {
+		for _, item := range strings.Split(out, ",") {
+			items = append(items, strings.TrimSpace(item))
+		}
+		return nil
+	})
+	return items, err
 }
 
 func GracefulQuit(appName string) error {

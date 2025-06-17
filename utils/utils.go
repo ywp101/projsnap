@@ -7,8 +7,10 @@ import (
 	"github.com/twmb/murmur3"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -106,4 +108,25 @@ func Uint64ToBytes(n uint64) []byte {
 	buf := make([]byte, 8) // uint64 占 8 字节
 	binary.BigEndian.PutUint64(buf, n)
 	return buf
+}
+
+func GetPIDFromAppName(appName string) ([]int, error) {
+	cmd := exec.Command("pgrep", appName)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("ps failed: %w", err)
+	}
+	pids := make([]int, 0)
+	for _, v := range strings.Split(string(output), "\n") {
+		if v == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("parse pid failed: %w", err)
+		}
+		pids = append(pids, pid)
+	}
+	sort.Ints(pids)
+	return pids, nil
 }

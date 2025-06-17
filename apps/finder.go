@@ -7,7 +7,7 @@ import (
 type Finder struct {
 }
 
-func (f Finder) Pack(_, _ string) ([]string, error) {
+func (f Finder) Pack(_, appName string) ([]AppConfig, error) {
 	script := `
 	tell application "Finder"
 		set window_list to every Finder window
@@ -19,7 +19,8 @@ func (f Finder) Pack(_, _ string) ([]string, error) {
 		return paths
 	end tell`
 
-	return utils.RunOsascript(script)
+	tmp, err := utils.RunOsascript(script)
+	return NewAppConfigsWithArgs(appName, tmp), err
 }
 
 func (f Finder) Unpack(ws *AppConfig, running bool) error {

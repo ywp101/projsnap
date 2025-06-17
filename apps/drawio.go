@@ -30,7 +30,7 @@ func getDrawIOOpenFiles() ([]string, error) {
 	return fileNames, nil
 }
 
-func (d DrawIO) Pack(_, _ string) ([]string, error) {
+func (d DrawIO) Pack(_, appName string) ([]AppConfig, error) {
 	fileNames, err := getDrawIOOpenFiles()
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (d DrawIO) Pack(_, _ string) ([]string, error) {
 			}
 		}
 	}
-	return filePaths, nil
+	return NewAppConfigsWithArgs(appName, filePaths), nil
 }
 
 func (d DrawIO) Unpack(ws *AppConfig, running bool) error {

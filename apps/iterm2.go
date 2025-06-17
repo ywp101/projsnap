@@ -11,7 +11,7 @@ import (
 type Iterm2 struct {
 }
 
-func (Iterm2) Pack(_, _ string) ([]string, error) {
+func (Iterm2) Pack(_, appName string) ([]AppConfig, error) {
 	iterm2File := filepath.Join(os.TempDir(), ".iterm2.txt")
 	_ = os.Remove(iterm2File)
 	script := fmt.Sprintf(`tell application "iTerm"
@@ -31,7 +31,8 @@ end tell`, iterm2File)
 	}
 	time.Sleep(1 * time.Second) // wait for iterm2 to write
 	defer os.Remove(iterm2File)
-	return utils.ReadFileToStringList(iterm2File)
+	result, err := utils.ReadFileToStringList(iterm2File)
+	return NewAppConfigsWithArgs(appName, result), err
 }
 
 func (Iterm2) Unpack(ws *AppConfig, _ bool) error {

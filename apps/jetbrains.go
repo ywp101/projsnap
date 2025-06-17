@@ -32,7 +32,7 @@ func getJetBrainsIOOpenFiles(appName string) ([]string, error) {
 	return fileNames, nil
 }
 
-func (j JetBrains) Pack(_, ideName string) ([]string, error) {
+func (j JetBrains) Pack(_, ideName string) ([]AppConfig, error) {
 	projectNames, err := getJetBrainsIOOpenFiles(ideName)
 	if err != nil {
 		return nil, fmt.Errorf("getJetBrainsIOOpenFiles occur fail, err: %v\n", err)
@@ -59,7 +59,7 @@ func (j JetBrains) Pack(_, ideName string) ([]string, error) {
 		openProjects = append(openProjects, expendedPath)
 	}
 
-	return openProjects, nil
+	return NewAppConfigsWithArgs(ideName, openProjects), nil
 }
 
 func (j JetBrains) Unpack(ws *AppConfig, running bool) error {

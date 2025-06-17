@@ -40,6 +40,9 @@ var snapshotCmd = &cobra.Command{
 			quit:      quitFlag,
 			configDir: configDir,
 		})
+		if err := ws.Open(); err != nil {
+			log.Fatal(err)
+		}
 		defer ws.Close()
 		if ok, err := ws.SaveWorkspace(aliasName); !ok || err != nil {
 			log.Printf("SaveWorkspace fail, ok: %v, err: %v\n", ok, err)
@@ -59,6 +62,9 @@ var switchCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		if err := ws.Open(); err != nil {
+			log.Fatal(err)
+		}
 		defer ws.Close()
 		if err := ws.SwitchWorkspace(ctxVersion); err != nil {
 			log.Printf("SwitchWorkspace occur error: %v\n", err)
@@ -78,6 +84,9 @@ var restoreCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		if err := ws.Open(); err != nil {
+			log.Fatal(err)
+		}
 		defer ws.Close()
 		if err := ws.LoadWorkspace(ctxVersion); err != nil {
 			log.Printf("LoadWorkspace occur error: %v\n", err)
@@ -93,6 +102,9 @@ var listSnapshotCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		if err := ws.Open(); err != nil {
+			log.Fatal(err)
+		}
 		defer ws.Close()
 		i := 1
 		for _, snapshot := range ws.ListSnapshots() {
@@ -117,6 +129,9 @@ var rmSnapshotCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		if err := ws.Open(); err != nil {
+			log.Fatal(err)
+		}
 		defer ws.Close()
 		if err := ws.RemoveSnapshots(ctxVersion); err != nil {
 			fmt.Printf("remove snapshots fail, err:%v\n", err)

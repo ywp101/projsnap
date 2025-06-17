@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
-	"os"
 	"path/filepath"
 	"projctx/apps"
 	"projctx/utils"
@@ -13,6 +12,11 @@ import (
 	"strings"
 	"time"
 )
+
+type AppSnapshot struct {
+	*apps.AppConfig
+	*WindowInfo
+}
 
 type ProjectCtxSnapshot struct {
 	SnapshotAlias string `json:"snapshot_alias"`
@@ -35,6 +39,7 @@ type ProjectCtx struct {
 	opt           *ProjectCtxOptions
 	meta          *ProjectCtxMeta
 	db            *bolt.DB
+	wm            *WindowManager
 }
 
 func NewWorkspace(opt *ProjectCtxOptions) *ProjectCtx {
@@ -43,24 +48,15 @@ func NewWorkspace(opt *ProjectCtxOptions) *ProjectCtx {
 		generalPacker: apps.NormalPacker{},
 		opt:           opt,
 		meta:          &ProjectCtxMeta{Snapshots: make(map[string]ProjectCtxSnapshot)},
+		wm:            NewWindowManager(),
 	}
 	LoadApplicationPlugins(ws)
 	dbPath := filepath.Join(opt.configDir, "projctx.db")
-	firstRun := false
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		firstRun = true
-	}
 	db, err := bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	ws.db = db
-	if firstRun {
-		_ = ws.InitDB()
-	}
-	if err = ws.loadMeta(); err != nil {
-		log.Fatal(err)
-	}
 	return ws
 }
 
@@ -71,12 +67,18 @@ func (w *ProjectCtx) Close() error {
 	return nil
 }
 
-func (w *ProjectCtx) InitDB() error {
-	return w.db.Update(func(tx *bolt.Tx) error {
+func (w *ProjectCtx) Open() (err error) {
+	if err = w.db.Update(func(tx *bolt.Tx) error {
 		_, _ = tx.CreateBucketIfNotExists([]byte("ctx"))
 		_, _ = tx.CreateBucketIfNotExists([]byte("snapshots"))
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	if err = w.loadMeta(); err != nil {
+		return err
+	}
+	return w.wm.PreCheck()
 }
 
 func (w *ProjectCtx) RemoveSnapshots(aliasName string) error {
@@ -113,31 +115,14 @@ func (w *ProjectCtx) loadMeta() error {
 		}
 		return nil
 	})
-	//if _, err := os.Stat(configDir); os.IsNotExist(err) {
-	//	if err := os.Mkdir(configDir, 0755); err != nil {
-	//		return err
-	//	}
-	//}
-	//
-	//metaPath := w.getMetaFilePath()
-	//if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-	//	w.meta = &ProjectCtxMeta{Snapshots: make(map[string]string)}
-	//	return nil
-	//}
-	//fd, err := os.Open(metaPath)
-	//if err != nil {
-	//	return err
-	//}
-	//defer fd.Close()
-	//return json.NewDecoder(fd).Decode(w.meta)
 }
 
-func (w *ProjectCtx) saveMeta(aliasName string, wsConfigs []apps.AppConfig) (seq uint64, err error) {
+func (w *ProjectCtx) saveMeta(aliasName string, appSnapshots []AppSnapshot) (seq uint64, err error) {
 	err = w.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("ctx"))
 		seq, _ = b.NextSequence()
 		ctxID := strconv.FormatUint(seq, 10)
-		data, err := json.Marshal(wsConfigs)
+		data, err := json.Marshal(appSnapshots)
 		if err != nil {
 			return err
 		}
@@ -194,20 +179,24 @@ func (w *ProjectCtx) SaveWorkspace(aliasName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if err := w.wm.TakeSnapshot(); err != nil {
+		return false, err
+	}
 
-	//appNames = RemoveInWhiteList(appNames)
-	wsConfigs := make([]apps.AppConfig, 0)
-	hashInput := ""
+	appSnapshots := make([]AppSnapshot, 0)
 	for app := range appNames {
-		hashInput += app
 		conf, err := w.GetPacker(app).Pack(w.opt.configDir, app)
 		if err != nil {
 			return false, fmt.Errorf("%s occur fail, err: %v", app, err)
 		}
-		wsConfigs = append(wsConfigs, apps.AppConfig{AppName: app, Args: conf})
+		// todo: save要关联正常，restore关联也要正常，现在是随机
+		for i := range conf {
+			wind, _ := w.wm.GetWindowInfo(app) // ignore error
+			appSnapshots = append(appSnapshots, AppSnapshot{AppConfig: &conf[i], WindowInfo: wind})
+		}
 	}
 
-	ctxID, err := w.saveMeta(aliasName, wsConfigs)
+	ctxID, err := w.saveMeta(aliasName, appSnapshots)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -219,32 +208,32 @@ func (w *ProjectCtx) SaveWorkspace(aliasName string) (bool, error) {
 	return true, nil
 }
 
-func (w *ProjectCtx) preloadWorkspace(aliasName string) []apps.AppConfig {
+func (w *ProjectCtx) preloadWorkspace(aliasName string) []AppSnapshot {
 	// alias
 	snapshot, ok := w.meta.Snapshots[aliasName]
 	if !ok {
 		log.Fatal("no found ctxID or aliasName")
 	}
-	wsConfigs := make([]apps.AppConfig, 0)
+	appSnapshots := make([]AppSnapshot, 0)
 
 	_ = w.db.View(func(tx *bolt.Tx) error {
-		ssBucket := tx.Bucket([]byte("snapshots"))
-		data := ssBucket.Get([]byte(snapshot.SnapshotKey))
-		return json.Unmarshal(data, &wsConfigs)
+		b := tx.Bucket([]byte("ctx"))
+		data := b.Get([]byte(snapshot.SnapshotKey))
+		return json.Unmarshal(data, &appSnapshots)
 	})
-	return wsConfigs
+	return appSnapshots
 }
 
 func (w *ProjectCtx) SwitchWorkspace(aliasName string) error {
-	wsConfigs := w.preloadWorkspace(aliasName)
+	appSnapshots := w.preloadWorkspace(aliasName)
 	nowAppNames, err := w.GetAllApplication()
 	if err != nil {
 		return err
 	}
-	for i, conf := range wsConfigs {
-		log.Printf("[%d/%d] Opening %s, args: %v\n", i+1, len(wsConfigs), conf.AppName, conf.Args)
+	for i, conf := range appSnapshots {
+		log.Printf("[%d/%d] Opening %s, args: %v\n", i+1, len(appSnapshots), conf.AppName, conf.Args)
 		_, running := nowAppNames[conf.AppName]
-		if err := w.GetPacker(conf.AppName).Unpack(&conf, running); err != nil {
+		if err := w.GetPacker(conf.AppName).Unpack(conf.AppConfig, running); err != nil {
 			return err
 		}
 		delete(nowAppNames, conf.AppName)
@@ -253,17 +242,35 @@ func (w *ProjectCtx) SwitchWorkspace(aliasName string) error {
 		log.Printf("close no use app: %s\n", app)
 		_ = w.GetPacker(app).Quit(app)
 	}
+	time.Sleep(3 * time.Second)
+	if err := w.wm.TakeSnapshot(); err != nil {
+		return err
+	}
+	// restore windows
+	for _, conf := range appSnapshots {
+		_ = w.wm.RestoreWindow(conf.WindowInfo)
+	}
 	return nil
 }
 
 func (w *ProjectCtx) LoadWorkspace(aliasName string) error {
-	wsConfigs := w.preloadWorkspace(aliasName)
-	for i, conf := range wsConfigs {
-		log.Printf("[%d/%d] Opening %s, args: %v\n", i+1, len(wsConfigs), conf.AppName, conf.Args)
-		if err := w.GetPacker(conf.AppName).Unpack(&conf, false); err != nil {
+	appSnapshots := w.preloadWorkspace(aliasName)
+	for i, conf := range appSnapshots {
+		log.Printf("[%d/%d] Opening %s, args: %v\n", i+1, len(appSnapshots), conf.AppName, conf.Args)
+		if err := w.GetPacker(conf.AppName).Unpack(conf.AppConfig, false); err != nil {
 			return err
 		}
 	}
+	time.Sleep(3 * time.Second)
+	// get current opened windows
+	if err := w.wm.TakeSnapshot(); err != nil {
+		return err
+	}
+	// restore windows
+	for _, conf := range appSnapshots {
+		_ = w.wm.RestoreWindow(conf.WindowInfo)
+	}
+
 	return nil
 }
 
