@@ -86,11 +86,11 @@ func (w *ProjectCtx) RemoveSnapshots(aliasName string) error {
 	if !ok {
 		return fmt.Errorf("no found ctxID or aliasName: %s", aliasName)
 	}
-	// todo: 其他app产生的config也需要清理
 	return w.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("ctx"))
 		ssBucket := tx.Bucket([]byte("snapshots"))
 		_ = ssBucket.Delete([]byte(aliasName))
+
+		b := tx.Bucket([]byte("ctx"))
 		_ = b.Delete([]byte(snapshot.SnapshotKey))
 		return nil
 	})

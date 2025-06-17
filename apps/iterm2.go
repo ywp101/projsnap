@@ -27,7 +27,9 @@ func (Iterm2) Pack(_, appName string) ([]AppConfig, error) {
 end tell`, iterm2File)
 	_, err := utils.RunOsascript(script)
 	if err != nil {
-		return nil, err
+		// only one tab occur error, ignore it.
+		return nil, nil
+		//return nil, err
 	}
 	time.Sleep(1 * time.Second) // wait for iterm2 to write
 	defer os.Remove(iterm2File)

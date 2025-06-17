@@ -8,21 +8,24 @@ type PackConfig []string
 
 func NewAppConfigs(appName string) []AppConfig {
 	return []AppConfig{{
-		AppName: appName,
-		Args:    make(PackConfig, 0),
+		AppName:     appName,
+		Args:        make(PackConfig, 0),
+		Attachments: make([]string, 0),
 	}}
 }
 
 func NewAppConfigsWithArgs(appName string, args PackConfig) []AppConfig {
 	return []AppConfig{{
-		AppName: appName,
-		Args:    args,
+		AppName:     appName,
+		Args:        args,
+		Attachments: make([]string, 0),
 	}}
 }
 
 type AppConfig struct {
-	AppName string     `json:"app_name"`
-	Args    PackConfig `json:"args"`
+	AppName     string     `json:"app_name"`
+	Args        PackConfig `json:"args"`
+	Attachments []string   `json:"attachments"`
 }
 
 type AppPacker interface {

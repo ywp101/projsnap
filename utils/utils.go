@@ -36,19 +36,13 @@ func ReadFileToStringList(file string) ([]string, error) {
 	return slices.DeleteFunc(strings.Split(string(b), "\n"), func(s string) bool { return s == "" }), nil
 }
 
-func RecoverBakFile(bakFile string) error {
-	bakFd, err := os.Open(bakFile)
-	if err != nil {
-		return err
-	}
-	defer bakFd.Close()
-	srcFile := bakFile[:strings.LastIndex(bakFile, ".")]
-	srcFd, err := os.Create(srcFile)
+func RecoverBakFile(dst string, srcData string) error {
+	srcFd, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer srcFd.Close()
-	_, err = io.Copy(srcFd, bakFd)
+	_, err = srcFd.WriteString(srcData)
 	return err
 }
 
