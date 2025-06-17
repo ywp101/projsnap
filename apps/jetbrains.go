@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"projctx/utils"
 	"regexp"
 	"strings"
-	"workspace/utils"
 )
 
 type JetBrains struct {
@@ -32,7 +32,7 @@ func getJetBrainsIOOpenFiles(appName string) ([]string, error) {
 	return fileNames, nil
 }
 
-func (JetBrains) Pack(_, ideName string) ([]string, error) {
+func (j JetBrains) Pack(_, ideName string) ([]string, error) {
 	projectNames, err := getJetBrainsIOOpenFiles(ideName)
 	if err != nil {
 		return nil, fmt.Errorf("getJetBrainsIOOpenFiles occur fail, err: %v\n", err)
@@ -62,10 +62,13 @@ func (JetBrains) Pack(_, ideName string) ([]string, error) {
 	return openProjects, nil
 }
 
-func (JetBrains) Unpack(ws *AppConfig) error {
+func (j JetBrains) Unpack(ws *AppConfig, running bool) error {
+	if running {
+		_ = j.Quit(ws.AppName)
+	}
 	return utils.OpenMultiApp(ws.AppName, ws.Args...)
 }
 
-func (JetBrains) Quit(appName string) error {
+func (j JetBrains) Quit(appName string) error {
 	return utils.GracefulQuit(appName)
 }

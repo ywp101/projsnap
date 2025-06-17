@@ -1,8 +1,8 @@
 package main
 
 import (
+	"projctx/apps"
 	"strings"
-	"workspace/apps"
 )
 
 func LoadApplicationPlugins(ws *ProjectCtx) {

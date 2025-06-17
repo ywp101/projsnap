@@ -2,13 +2,13 @@ package apps
 
 import (
 	"fmt"
-	"workspace/utils"
+	"projctx/utils"
 )
 
 type Browser struct {
 }
 
-func (f Browser) Pack(_, browserName string) ([]string, error) {
+func (b Browser) Pack(_, browserName string) ([]string, error) {
 	browserScript := fmt.Sprintf(`
 tell application "%s"
 	set tabList to {}
@@ -23,11 +23,14 @@ end tell`, browserName)
 	return utils.RunOsascript(browserScript)
 }
 
-func (Browser) Unpack(ws *AppConfig) error {
+func (b Browser) Unpack(ws *AppConfig, running bool) error {
+	if running {
+		_ = b.Quit(ws.AppName)
+	}
 	return utils.OpenApp(ws.AppName, ws.Args...)
 }
 
-func (Browser) Quit(browserName string) error {
+func (b Browser) Quit(browserName string) error {
 	quitScript := fmt.Sprintf(` tell application "%s" to close every window`, browserName)
 	_, err := utils.RunOsascript(quitScript)
 	return err

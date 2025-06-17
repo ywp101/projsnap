@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	"workspace/utils"
+	"projctx/utils"
 )
 
 var (
@@ -25,7 +25,7 @@ type Vault struct {
 type Obsidian struct {
 }
 
-func (Obsidian) Pack(configDir, _ string) ([]string, error) {
+func (o Obsidian) Pack(configDir, _ string) ([]string, error) {
 	configPath, _ := utils.ExpandUser(obsidianConfigPath)
 	fd, err := os.Open(configPath)
 	if err != nil {
@@ -52,9 +52,9 @@ func (Obsidian) Pack(configDir, _ string) ([]string, error) {
 	}
 }
 
-func (Obsidian) Unpack(ws *AppConfig) error {
-	if err := utils.GracefulQuit(ws.AppName); err != nil {
-		return nil
+func (o Obsidian) Unpack(ws *AppConfig, running bool) error {
+	if running {
+		_ = o.Quit(ws.AppName)
 	}
 	if err := utils.RecoverBakFile(ws.Args[0]); err != nil {
 		return err
@@ -62,6 +62,6 @@ func (Obsidian) Unpack(ws *AppConfig) error {
 	return utils.OpenApp(ws.AppName)
 }
 
-func (Obsidian) Quit(appName string) error {
+func (o Obsidian) Quit(appName string) error {
 	return utils.GracefulQuit(appName)
 }

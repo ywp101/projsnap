@@ -5,7 +5,8 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
-	"workspace/utils"
+	"projctx/utils"
+	"time"
 )
 
 /*
@@ -39,16 +40,17 @@ var snapshotCmd = &cobra.Command{
 			quit:      quitFlag,
 			configDir: configDir,
 		})
+		defer ws.Close()
 		if ok, err := ws.SaveWorkspace(aliasName); !ok || err != nil {
 			log.Printf("SaveWorkspace fail, ok: %v, err: %v\n", ok, err)
 		}
 	},
 }
 
-var restoreCmd = &cobra.Command{
-	Use:     "restore",
-	Aliases: []string{"rs"},
-	Short:   "restore specific snapshot",
+var switchCmd = &cobra.Command{
+	Use:     "switch",
+	Aliases: []string{"sw"},
+	Short:   "switch specific snapshot",
 	Run: func(cmd *cobra.Command, args []string) {
 		if ctxVersion == "" {
 			log.Printf("not found ctxVersion: %s\n", ctxVersion)
@@ -57,6 +59,26 @@ var restoreCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		defer ws.Close()
+		if err := ws.SwitchWorkspace(ctxVersion); err != nil {
+			log.Printf("SwitchWorkspace occur error: %v\n", err)
+		}
+	},
+}
+
+var restoreCmd = &cobra.Command{
+	Use:     "restore",
+	Aliases: []string{"rs"},
+	Short:   "restore specific snapshot(use after reboot)",
+	Run: func(cmd *cobra.Command, args []string) {
+		if ctxVersion == "" {
+			log.Printf("not found ctxVersion: %s\n", ctxVersion)
+			return
+		}
+		ws := NewWorkspace(&ProjectCtxOptions{
+			configDir: configDir,
+		})
+		defer ws.Close()
 		if err := ws.LoadWorkspace(ctxVersion); err != nil {
 			log.Printf("LoadWorkspace occur error: %v\n", err)
 		}
@@ -71,12 +93,13 @@ var listSnapshotCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		defer ws.Close()
 		i := 1
-		for alias, ctxID := range ws.ListSnapshots() {
-			if alias == ctxID {
-				fmt.Printf("[%d] %s\n", i, alias)
+		for _, snapshot := range ws.ListSnapshots() {
+			if snapshot.SnapshotAlias == snapshot.SnapshotKey {
+				fmt.Printf("[%d] %s\t%s\n", i, snapshot.SnapshotKey, time.Unix(snapshot.Ctime, 0).String())
 			} else {
-				fmt.Printf("[%d] %s(%s)", i, alias, ctxID)
+				fmt.Printf("[%d] %s(%s)\t%s\n", i, snapshot.SnapshotAlias, snapshot.SnapshotKey, time.Unix(snapshot.Ctime, 0).String())
 			}
 			i++
 		}
@@ -94,6 +117,7 @@ var rmSnapshotCmd = &cobra.Command{
 		ws := NewWorkspace(&ProjectCtxOptions{
 			configDir: configDir,
 		})
+		defer ws.Close()
 		if err := ws.RemoveSnapshots(ctxVersion); err != nil {
 			fmt.Printf("remove snapshots fail, err:%v\n", err)
 		} else {
@@ -105,9 +129,10 @@ var rmSnapshotCmd = &cobra.Command{
 func init() {
 	snapshotCmd.Flags().BoolVarP(&quitFlag, "quit", "q", false, "Exit when saving snapshot")
 	snapshotCmd.Flags().StringVarP(&aliasName, "alias", "a", "", "Snapshot alias name")
+	switchCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
 	restoreCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
 	rmSnapshotCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
-	rootCmd.AddCommand(snapshotCmd, restoreCmd, listSnapshotCmd, rmSnapshotCmd)
+	rootCmd.AddCommand(snapshotCmd, restoreCmd, listSnapshotCmd, rmSnapshotCmd, switchCmd)
 }
 
 func main() {

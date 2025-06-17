@@ -1,7 +1,7 @@
 package apps
 
 import (
-	"workspace/utils"
+	"projctx/utils"
 )
 
 type Finder struct {
@@ -22,13 +22,16 @@ func (f Finder) Pack(_, _ string) ([]string, error) {
 	return utils.RunOsascript(script)
 }
 
-func (f Finder) Unpack(ws *AppConfig) error {
+func (f Finder) Unpack(ws *AppConfig, running bool) error {
 	if len(ws.Args) == 0 {
 		return nil
+	}
+	if running {
+		_ = f.Quit(ws.AppName)
 	}
 	return utils.OpenApp(ws.AppName, ws.Args...)
 }
 
-func (Finder) Quit(appName string) error {
+func (f Finder) Quit(appName string) error {
 	return utils.GracefulQuit(appName)
 }

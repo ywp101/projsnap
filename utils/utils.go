@@ -101,3 +101,9 @@ func decodeUTF16LE(b []byte) (string, error) {
 	runes := utf16.Decode(u16s)
 	return string(runes), nil
 }
+
+func Uint64ToBytes(n uint64) []byte {
+	buf := make([]byte, 8) // uint64 占 8 字节
+	binary.BigEndian.PutUint64(buf, n)
+	return buf
+}

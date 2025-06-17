@@ -2,8 +2,8 @@ package apps
 
 import (
 	"path/filepath"
+	"projctx/utils"
 	"strings"
-	"workspace/utils"
 )
 
 var (
@@ -30,7 +30,7 @@ func getDrawIOOpenFiles() ([]string, error) {
 	return fileNames, nil
 }
 
-func (DrawIO) Pack(_, _ string) ([]string, error) {
+func (d DrawIO) Pack(_, _ string) ([]string, error) {
 	fileNames, err := getDrawIOOpenFiles()
 	if err != nil {
 		return nil, err
@@ -54,7 +54,10 @@ func (DrawIO) Pack(_, _ string) ([]string, error) {
 	return filePaths, nil
 }
 
-func (DrawIO) Unpack(ws *AppConfig) error {
+func (d DrawIO) Unpack(ws *AppConfig, running bool) error {
+	if running {
+		_ = d.Quit(ws.AppName)
+	}
 	taskMap := make(map[string]bool)
 	return utils.OpenMultiAppByRetry(func() ([]string, error) {
 		doneArgs, err := getDrawIOOpenFiles()
@@ -75,6 +78,6 @@ func (DrawIO) Unpack(ws *AppConfig) error {
 	}, ws.AppName, ws.Args...)
 }
 
-func (DrawIO) Quit(appName string) error {
+func (d DrawIO) Quit(appName string) error {
 	return utils.GracefulQuit(appName)
 }
