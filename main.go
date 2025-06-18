@@ -119,7 +119,7 @@ var listSnapshotCmd = &cobra.Command{
 			i++
 		}
 		if i == 1 {
-			fmt.Println("no found any ManifestSnapshots.")
+			fmt.Println("no found any Snapshots.")
 		}
 	},
 }

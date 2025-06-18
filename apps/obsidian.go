@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	obsidianConfigPath = "~/Library/Application Support/obsidian/obsidian.json"
+	obsidianConfigPath, _ = utils.ExpandUser("~/Library/Application Support/obsidian/obsidian.json")
 )
 
 type VaultsFile struct {
@@ -26,8 +26,7 @@ type Obsidian struct {
 }
 
 func (o Obsidian) Pack(_, appName string) ([]AppConfig, error) {
-	configPath, _ := utils.ExpandUser(obsidianConfigPath)
-	fd, err := os.Open(configPath)
+	fd, err := os.Open(obsidianConfigPath)
 	if err != nil {
 		return nil, err
 	}

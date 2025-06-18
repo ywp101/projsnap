@@ -1,13 +1,11 @@
 package apps
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"projsnap/utils"
 	"regexp"
-	"strings"
 )
 
 type JetBrains struct {
@@ -18,18 +16,20 @@ func getJetBrainsIOOpenFiles(appName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	fileNames := make([]string, 0)
-	for _, title := range titles {
-		if title == "" {
-			continue
-		}
-		tmp := strings.Split(title, " – ") // is e28093, "–" != "-"
-		if len(tmp) != 2 {
-			return nil, errors.New("parse JetBrains title error")
-		}
-		fileNames = append(fileNames, tmp[0])
+	return utils.SliceSplit(titles, " – ", 2, 0) // is e28093, "–" != "-"
+}
+
+func ReadRecentProjectFile(ideName string) ([]byte, error) {
+	pattern, _ := utils.ExpandUser("~/Library/Application Support/JetBrains/*/options/recentProjects.xml")
+	tmp, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
 	}
-	return fileNames, nil
+	matched := utils.FindMatched(tmp, ideName)
+	if len(matched) != 1 {
+		return nil, fmt.Errorf("find matched file occur fail, matched: %v\n", matched)
+	}
+	return os.ReadFile(matched[0])
 }
 
 func (j JetBrains) Pack(_, ideName string) ([]AppConfig, error) {
@@ -37,12 +37,12 @@ func (j JetBrains) Pack(_, ideName string) ([]AppConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getJetBrainsIOOpenFiles occur fail, err: %v\n", err)
 	}
-	xmlPath := "/Users/ryanye/Library/Application Support/JetBrains/GoLand2023.2/options/recentProjects.xml"
-	data, err := os.ReadFile(xmlPath)
+	data, err := ReadRecentProjectFile(ideName)
 	if err != nil {
 		fmt.Println("读取失败:", err)
 		return nil, err
 	}
+	// read recent all projects from xml file
 	recentProjects := make(map[string]string)
 	reg, err := regexp.Compile(`<entry key="(.*?)">`)
 	if err != nil {
@@ -52,6 +52,7 @@ func (j JetBrains) Pack(_, ideName string) ([]AppConfig, error) {
 	for _, result := range results {
 		recentProjects[filepath.Base(result[1])] = result[1]
 	}
+	// found opened project
 	openProjects := make([]string, 0)
 	for _, pn := range projectNames {
 		p := recentProjects[pn]
