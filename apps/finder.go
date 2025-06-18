@@ -1,7 +1,7 @@
 package apps
 
 import (
-	"projctx/utils"
+	"projsnap/utils"
 )
 
 type Finder struct {

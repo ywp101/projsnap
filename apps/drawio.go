@@ -2,7 +2,7 @@ package apps
 
 import (
 	"path/filepath"
-	"projctx/utils"
+	"projsnap/utils"
 	"strings"
 )
 

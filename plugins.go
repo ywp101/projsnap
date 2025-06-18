@@ -1,11 +1,11 @@
 package main
 
 import (
-	"projctx/apps"
+	"projsnap/apps"
 	"strings"
 )
 
-func LoadApplicationPlugins(ws *ProjectCtx) {
+func LoadApplicationPlugins(ws *ProjSnapMaster) {
 	ws.RegisterApplication("Finder", apps.Finder{})
 	ws.RegisterApplication("Microsoft Edge", apps.Browser{})
 	ws.RegisterApplication("draw.io", apps.DrawIO{})

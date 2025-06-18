@@ -1,4 +1,4 @@
-module projctx
+module projsnap
 
 go 1.24.2
 

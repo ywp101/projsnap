@@ -2,7 +2,7 @@ package apps
 
 import (
 	"fmt"
-	"projctx/utils"
+	"projsnap/utils"
 	"strings"
 )
 

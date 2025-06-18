@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
-	"projctx/utils"
+	"projsnap/utils"
 	"time"
 )
 
@@ -16,27 +16,30 @@ System Events 访问其他 app 的窗口信息需要你授权：
 启用当前运行脚本的终端（如 iTerm、Terminal、Script Editor、你的 Go 程序等）
 */
 
-var configDir, _ = utils.ExpandUser("~/.projctx/")
+var configDir, _ = utils.ExpandUser("~/.projsnap/")
 var quitFlag bool
-var ctxVersion string
-var aliasName string
+var snapName string
 var rmIndex int
 
 var rootCmd = &cobra.Command{
-	Use:   "projctx",
+	Use:   "projsnap",
 	Short: "Save the current snapshot and restore it when needed",
 	Long:  "Save the current snapshot and restore it when needed",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Use `projctx snapshot` or `projctx restore` to start.")
+		fmt.Println("Use `projsnap snapshot` or `projsnap restore` to start.")
 	},
 }
 
 var snapshotCmd = &cobra.Command{
-	Use:     "snapshot",
-	Aliases: []string{"ss"},
+	Use:     "take_snap",
+	Aliases: []string{"take"},
 	Short:   "Save the current snapshot",
 	Run: func(cmd *cobra.Command, args []string) {
-		ws := NewWorkspace(&ProjectCtxOptions{
+		if snapName == "" {
+			log.Println("You should input snapName(--name [snapshot] or -n [snapshot])")
+			return
+		}
+		ws := NewWorkspace(&ProjSnapOptions{
 			quit:      quitFlag,
 			configDir: configDir,
 		})
@@ -44,8 +47,8 @@ var snapshotCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		defer ws.Close()
-		if ok, err := ws.SaveWorkspace(aliasName); !ok || err != nil {
-			log.Printf("SaveWorkspace fail, ok: %v, err: %v\n", ok, err)
+		if ok, err := ws.SaveSnapshot(snapName); !ok || err != nil {
+			log.Printf("SaveSnapshot fail, ok: %v, err: %v\n", ok, err)
 		}
 	},
 }
@@ -55,19 +58,19 @@ var switchCmd = &cobra.Command{
 	Aliases: []string{"sw"},
 	Short:   "switch specific snapshot",
 	Run: func(cmd *cobra.Command, args []string) {
-		if ctxVersion == "" {
-			log.Printf("not found ctxVersion: %s\n", ctxVersion)
+		if snapName == "" {
+			log.Println("You should input snapName(--name [snapshot] or -n [snapshot])")
 			return
 		}
-		ws := NewWorkspace(&ProjectCtxOptions{
+		ws := NewWorkspace(&ProjSnapOptions{
 			configDir: configDir,
 		})
 		if err := ws.Open(); err != nil {
 			log.Fatal(err)
 		}
 		defer ws.Close()
-		if err := ws.SwitchWorkspace(ctxVersion); err != nil {
-			log.Printf("SwitchWorkspace occur error: %v\n", err)
+		if err := ws.SwitchSnapshot(snapName); err != nil {
+			log.Printf("SwitchSnapshot occur error: %v\n", err)
 		}
 	},
 }
@@ -77,19 +80,19 @@ var restoreCmd = &cobra.Command{
 	Aliases: []string{"rs"},
 	Short:   "restore specific snapshot(use after reboot)",
 	Run: func(cmd *cobra.Command, args []string) {
-		if ctxVersion == "" {
-			log.Printf("not found ctxVersion: %s\n", ctxVersion)
+		if snapName == "" {
+			log.Println("You should input snapName(--name [snapshot] or -n [snapshot])")
 			return
 		}
-		ws := NewWorkspace(&ProjectCtxOptions{
+		ws := NewWorkspace(&ProjSnapOptions{
 			configDir: configDir,
 		})
 		if err := ws.Open(); err != nil {
 			log.Fatal(err)
 		}
 		defer ws.Close()
-		if err := ws.LoadWorkspace(ctxVersion); err != nil {
-			log.Printf("LoadWorkspace occur error: %v\n", err)
+		if err := ws.RestoreSnapshot(snapName); err != nil {
+			log.Printf("RestoreSnapshot occur error: %v\n", err)
 		}
 	},
 }
@@ -97,9 +100,9 @@ var restoreCmd = &cobra.Command{
 var listSnapshotCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls", "ll"},
-	Short:   "list Snapshots",
+	Short:   "list ManifestSnapshots",
 	Run: func(cmd *cobra.Command, args []string) {
-		ws := NewWorkspace(&ProjectCtxOptions{
+		ws := NewWorkspace(&ProjSnapOptions{
 			configDir: configDir,
 		})
 		if err := ws.Open(); err != nil {
@@ -108,15 +111,15 @@ var listSnapshotCmd = &cobra.Command{
 		defer ws.Close()
 		i := 1
 		for _, snapshot := range ws.ListSnapshots() {
-			if snapshot.SnapshotAlias == snapshot.SnapshotKey {
+			if snapshot.SnapshotName == snapshot.SnapshotKey {
 				fmt.Printf("[%d] %s\t%s\n", i, snapshot.SnapshotKey, time.Unix(snapshot.Ctime, 0).String())
 			} else {
-				fmt.Printf("[%d] %s(%s)\t%s\n", i, snapshot.SnapshotAlias, snapshot.SnapshotKey, time.Unix(snapshot.Ctime, 0).String())
+				fmt.Printf("[%d] %s(%s)\t%s\n", i, snapshot.SnapshotName, snapshot.SnapshotKey, time.Unix(snapshot.Ctime, 0).String())
 			}
 			i++
 		}
 		if i == 1 {
-			fmt.Println("no found any Snapshots.")
+			fmt.Println("no found any ManifestSnapshots.")
 		}
 	},
 }
@@ -124,16 +127,20 @@ var listSnapshotCmd = &cobra.Command{
 var rmSnapshotCmd = &cobra.Command{
 	Use:     "remove",
 	Aliases: []string{"rm"},
-	Short:   "remove Snapshots",
+	Short:   "remove ManifestSnapshots",
 	Run: func(cmd *cobra.Command, args []string) {
-		ws := NewWorkspace(&ProjectCtxOptions{
+		if snapName == "" {
+			log.Println("You should input snapName(--name [snapshot] or -n [snapshot])")
+			return
+		}
+		ws := NewWorkspace(&ProjSnapOptions{
 			configDir: configDir,
 		})
 		if err := ws.Open(); err != nil {
 			log.Fatal(err)
 		}
 		defer ws.Close()
-		if err := ws.RemoveSnapshots(ctxVersion); err != nil {
+		if err := ws.RemoveSnapshots(snapName); err != nil {
 			fmt.Printf("remove snapshots fail, err:%v\n", err)
 		} else {
 			fmt.Println("remove snapshots success!")
@@ -143,10 +150,10 @@ var rmSnapshotCmd = &cobra.Command{
 
 func init() {
 	snapshotCmd.Flags().BoolVarP(&quitFlag, "quit", "q", false, "Exit when saving snapshot")
-	snapshotCmd.Flags().StringVarP(&aliasName, "alias", "a", "", "Snapshot alias name")
-	switchCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
-	restoreCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
-	rmSnapshotCmd.Flags().StringVarP(&ctxVersion, "ctx", "c", "", "ctx version")
+	snapshotCmd.Flags().StringVarP(&snapName, "name", "n", "", "snapshot name")
+	switchCmd.Flags().StringVarP(&snapName, "name", "n", "", "snapshot name")
+	restoreCmd.Flags().StringVarP(&snapName, "name", "n", "", "snapshot name")
+	rmSnapshotCmd.Flags().StringVarP(&snapName, "name", "n", "", "snapshot name")
 	rootCmd.AddCommand(snapshotCmd, restoreCmd, listSnapshotCmd, rmSnapshotCmd, switchCmd)
 }
 

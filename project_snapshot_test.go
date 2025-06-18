@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewWorkspacePack(t *testing.T) {
-	ws := NewWorkspace(&ProjectCtxOptions{
+	ws := NewWorkspace(&ProjSnapOptions{
 		configDir: configDir,
 	})
 	if err := ws.Open(); err != nil {
@@ -20,7 +20,7 @@ func TestNewWorkspacePack(t *testing.T) {
 }
 
 func TestNewWorkspaceUnPack(t *testing.T) {
-	ws := NewWorkspace(&ProjectCtxOptions{
+	ws := NewWorkspace(&ProjSnapOptions{
 		configDir: configDir,
 	})
 	if err := ws.Open(); err != nil {
@@ -29,7 +29,7 @@ func TestNewWorkspaceUnPack(t *testing.T) {
 	defer ws.Close()
 
 	appName := "Microsoft Edge"
-	appSnapshots := ws.preloadWorkspace("fuck")
+	appSnapshots := ws.loadSnapshot("fuck")
 	for _, sshot := range appSnapshots {
 		if sshot.AppName == appName {
 			_ = ws.GetPacker(appName).Unpack(sshot.AppConfig, true)
@@ -38,7 +38,7 @@ func TestNewWorkspaceUnPack(t *testing.T) {
 }
 
 func TestNewWorkspacelistAll(t *testing.T) {
-	ws := NewWorkspace(&ProjectCtxOptions{
+	ws := NewWorkspace(&ProjSnapOptions{
 		configDir: configDir,
 	})
 	if err := ws.Open(); err != nil {
