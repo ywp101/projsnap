@@ -23,6 +23,14 @@ projsnap take --name "SnapshotName"
 projsnap take --name "SnapshotName" --quit
 ```
 
+## List Snapshots
+List all snapshots:
+```bash
+projsnap ll 
+# or
+projsnap list
+```
+
 ## Restore a Snapshot
 Restore applications and windows from a saved snapshot:
 ```bash
